@@ -3,7 +3,7 @@
     "path": "~/Desktop/東大/biostats_report/report.Rmd",
     "project_path": "report.Rmd",
     "type": "r_markdown",
-    "hash": "139775605",
+    "hash": "3578021249",
     "contents": "",
     "dirty": false,
     "created": 1721302162059.0,
@@ -13,15 +13,15 @@
         "tempName": "Untitled1",
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "6,15",
-        "scrollLine": "0"
+        "cursorPosition": "27,13",
+        "scrollLine": "14"
     },
     "folds": "",
-    "lastKnownWriteTime": 1721302219,
+    "lastKnownWriteTime": 1721303538,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1721302219027,
+    "last_content_update": 1721303538603,
     "read_only": false,
     "read_only_alternatives": []
 }
