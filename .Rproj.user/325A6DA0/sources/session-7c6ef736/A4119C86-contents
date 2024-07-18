@@ -1,0 +1,32 @@
+---
+title: "生物統計学レポート"
+author: "髙良力樹"
+date: "`r Sys.Date()`"
+output: 
+  pdf_document:
+    latex_engine: lualatex
+    toc: false
+documentclass: bxjsarticle
+classoption: lualatex
+mainfont: ipaexg.ttf
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## れい
+
+れい
+```{r cars}
+summary(cars)
+```
+
+## いぐざんぽ
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+れい
