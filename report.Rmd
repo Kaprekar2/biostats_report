@@ -27,17 +27,32 @@ pacman::p_load(tidyverse, ggtext, lattice)
 ```{r}
 sessionInfo()
 ```
+環境は上記
+
+## データ構造
+まずデータの中身をhead関数で見てみると
+
+```{r echo=FALSE}
+head(barley)
+```
+
+さらにデータ数自体に偏りがないかを確認すると以下のように大きい偏りは見られない.
+```{r , echo=FALSE}
+barley |> group_by(variety) |> tally()
+```
 
 ## 1.オオムギ収量の箱ひげ図
 
-```{r pressure, echo=FALSE}
+
+<font-size: 18px;> 一つ目の要因である品種をx軸にとった箱ひげ図をまず見てみる.</font> 
+```{r , echo=FALSE}
 ggplot(barley, aes(x= variety, y=yield))+
   theme_bw()+
   geom_boxplot()+
   geom_jitter(aes(colour=year),width = 0.2)+
   scale_colour_manual(values = c("#D59B0A", "#DECA98"))+
   labs(
-    title = "yield graph",
+    title = "barley yield",
     x = "variety",
     y = "yield [bu/ac]"
   )+
@@ -51,4 +66,81 @@ ggplot(barley, aes(x= variety, y=yield))+
   scale_x_discrete(guide = guide_axis(n.dodge = 2))
 
 ```
+
+
+プロットは自動的に中央値（第二四分位数）が昇順で整列されて描画されているため、品種によって大きくなっているように感じる.
+
+しかし実点を見てみると、最大点から最小点までかなり広い範囲でばらついている(つまり分散が大きい)データが多い.
+例えばSvantosaとTrebiだとほとんどの点の描画範囲は変わらないが、最大点が非常に大きくまたデータが広範に散らばっている.
+
+
+次に2つ目の要因である、栽培地のデータを見てみる.
+```{r pressure, echo=FALSE}
+ggplot(barley, aes(x= site, y=yield))+
+  theme_bw()+
+  geom_boxplot()+
+  geom_jitter(aes(colour=year),width = 0.2)+
+  scale_colour_manual(values = c("#D59B0A", "#DECA98"))+
+  labs(
+    title = "barley yield",
+    x = "site",
+    y = "yield [bu/ac]"
+  )+
+  theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        axis.text.x = element_text(size = 10.5),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 12),
+        plot.caption = element_text(size = 8)
+  )+
+  scale_x_discrete(guide = guide_axis(n.dodge = 2))
+```
+
+これをみると各サンプル集団の多くは狭い範囲に集中していて、中央値の差がはっきりあるように見える.
+
+さらにもう一つの年度という変数に着目してみると、品種のグラフでは片方の年度だけ収量が高いといった偏りは特に見出せない.
+一方で栽培地のグラフではばらけている栽培地と、Morrisのように年度で収量の平均が変動していそうに見えるサンプルもある.
+
+
+これらのことから、オオムギの収量の変動要因は「**栽培地の影響が強く**」、「**品種の影響は栽培地による影響よりは弱そう**」であることがわかる.
+また植物の育成に大きく効く、環境の変動要因である「年度」は「栽培地によって偏りがありそうだがわからない」といったことがわかる.
+
+
+## 2.仮説の検定モデルと分散分析/補正
+
+まずデータの形状から「栽培地と品種が収量に影響する」という仮説がたてられる.
+この仮説の確からしさを示すために、「栽培地と品種（という変数）は収量に影響しない」という帰無仮説を立て、モデルを以下のように設定する.
+
+```{r, echo=TRUE}
+
+yield_nullmodel <- lm(yield ~ 1, data = barley)
+
+yield_altmodel <- lm(yield ~ site + variety + 1, data = barley)
+
+```
+上の回帰式は切片のみ（+誤差項）のモデル（栽培地と品種を考慮しないモデル）で、下は栽培地と品種という回帰係数で収量が説明できると仮定したモデルである.
+
+分散分析を行うと以下のようになる
+
+```{r, echo=FALSE}
+
+anova(yield_nullmodel)
+
+anova(yield_altmodel)
+
+```
+
+まず切片だけだと
+
+
+
+```{r, echo=FALSE}
+pairwise.t.test(barley$yield, barley$variety, p.adj="holm") 
+pairwise.t.test(barley$yield, barley$site, p.adj="holm") 
+```
+
+上記の結果から多重比較を考慮した上での結果が
+
+## 3.分散分析の結果の解釈と交互作用について
 

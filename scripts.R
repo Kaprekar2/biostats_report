@@ -20,13 +20,14 @@ ggplot(barley, aes(x= variety, y=yield))+
   geom_jitter(aes(colour=year),width = 0.2)+
   scale_colour_manual(values = c("#D59B0A", "#DECA98"))+
   labs(
-    title = "yield graph",
+    title = "barley yiled",
     x = "variety",
     y = "yield [bu/ac]"
   )+
   theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
         axis.title.x = element_text(size = 16),
         axis.title.y = element_text(size = 16),
+        axis.text.x = element_text(size = 10.5),
         legend.text = element_text(size = 10),
         legend.title = element_text(size = 12),
         plot.caption = element_text(size = 8)
@@ -34,3 +35,41 @@ ggplot(barley, aes(x= variety, y=yield))+
   scale_x_discrete(guide = guide_axis(n.dodge = 2))
 
 
+ggplot(barley, aes(x= site, y=yield))+
+  theme_bw()+
+  geom_boxplot()+
+  geom_jitter(aes(colour=year),width = 0.2)+
+  scale_colour_manual(values = c("#D59B0A", "#DECA98"))+
+  labs(
+    title = "barley yield",
+    x = "variety",
+    y = "yield [bu/ac]"
+  )+
+  theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        axis.text.x = element_text(size = 10.5),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 12),
+        plot.caption = element_text(size = 8)
+  )+
+  scale_x_discrete(guide = guide_axis(n.dodge = 2))
+
+##### linear model -----
+
+yield_nullmodel <- lm(yield ~ 1, data = barley)
+yield_nullmodel |> summary()
+
+yield_altmodel <- lm(yield ~ site, data = barley)
+yield_altmodel |> summary()
+
+anova(yield_nullmodel)
+
+anova(yield_altmodel)
+
+pairwise.t.test(barley$yield, barley$variety, p.adj="holm") 
+pairwise.t.test(barley$yield, barley$site, p.adj="holm") 
+
+
+
+##### -----
