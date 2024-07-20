@@ -72,4 +72,20 @@ pairwise.t.test(barley$yield, barley$site, p.adj="holm")
 
 
 
-##### -----
+##### 交互作用 -----
+
+barley_change <- barley |> 
+  group_by(site, variety) |> 
+  mutate(yield_mean = mean(yield))
+
+
+ggplot(barley_change) +
+  theme_bw()+
+  geom_line(aes(x = variety, y = yield_mean, color = site)) + 
+  #geom_point(aes(x = variety, y = yield_mean, color = site), size = 2) +
+  #scale_x_continuous(breaks = c(0, 1), labels = c("Nashi", "Ari")) +
+  xlab("variety") + 
+  ylab("yield mean")
+
+ggplot(barley_change) +
+  geom_line(aes(x = variety, y = yield_mean, color = site))

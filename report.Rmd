@@ -143,4 +143,4 @@ pairwise.t.test(barley$yield, barley$site, p.adj="holm")
 上記の結果から多重比較を考慮した上での結果が
 
 ## 3.分散分析の結果の解釈と交互作用について
-
+交互作用は弱そう
