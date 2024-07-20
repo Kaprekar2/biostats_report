@@ -81,11 +81,12 @@ barley_change <- barley |>
 
 ggplot(barley_change) +
   theme_bw()+
-  geom_line(aes(x = variety, y = yield_mean, color = site)) + 
-  #geom_point(aes(x = variety, y = yield_mean, color = site), size = 2) +
-  #scale_x_continuous(breaks = c(0, 1), labels = c("Nashi", "Ari")) +
+  geom_point(aes(x = variety, y = yield_mean, color = site), size = 2) +
+  scale_color_manual(values = scico(6, begin = 0.1, palette = "hawaii"))+
+  geom_line(aes(x = variety, y = yield_mean, color = site, group = site)) + 
   xlab("variety") + 
-  ylab("yield mean")
+  ylab("yield mean")+
+  scale_x_discrete(guide = guide_axis(n.dodge = 2))
 
-ggplot(barley_change) +
-  geom_line(aes(x = variety, y = yield_mean, color = site))
+
+
