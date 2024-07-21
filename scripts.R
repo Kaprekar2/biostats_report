@@ -103,6 +103,33 @@ ggplot(barley_change) +
   )
   
   
+barley_change <- barley_change |> 
+  group_by(variety, year) |> 
+  mutate(yield_mean_variety_year = mean(yield))
 
 
+ggplot(barley_change) +
+  theme_bw()+
+  geom_point(aes(x = variety, y = yield_mean_variety_year, color = year), size = 2) +
+  scale_color_manual(values = scico(2, begin = 0.1, palette = "hawaii"))+
+  #複数要素の折線はgroupで何の要素ごとで繋ぐのかを明示しなければいけない
+  geom_line(aes(x = variety, y = yield_mean_variety_year, color = year, group = year)) + 
+  scale_x_discrete(guide = guide_axis(n.dodge = 2))+
+  labs(
+    title = "yield mean by variety and each year",
+    x = "variety",
+    y = "yield mean [bu/ac]"
+  )+
+  theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        axis.text.x = element_text(size = 10.5),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 12),
+        plot.caption = element_text(size = 8)
+  )
 
+sleepstudy %>%
+  nest(data = -Subject) %>%
+  mutate(fit = map(data, ~ lm(Reaction ~ Days, data = .)),
+         results = map(fit, ~HSD.test(., trt = 'Days')))

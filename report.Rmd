@@ -19,17 +19,17 @@ mainfont: ipaexg.ttf
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-pacman::p_load(tidyverse, ggtext, lattice, car)
+pacman::p_load(tidyverse, ggtext, lattice, car, scico, lme4)
 ```
 
 ## 環境要件
 
-```{r}
+```{r echo=FALSE}
 sessionInfo()
 ```
 環境は上記
 
-## データ構造
+## 0. データ構造
 まずデータの中身をhead関数で見てみると
 
 ```{r echo=FALSE}
@@ -44,7 +44,7 @@ barley |> group_by(site) |> tally() |> head()
 barley |> group_by(year) |> tally() |> head()
 ```
 
-## 1.オオムギ収量の箱ひげ図
+## 1. オオムギ収量の箱ひげ図
 
 
 <font-size: 18px;> 一つ目の要因である品種をx軸にとった箱ひげ図をまず見てみる.</font> 
@@ -74,10 +74,11 @@ ggplot(barley, aes(x= variety, y=yield))+
 プロットは自動的に中央値（第二四分位数）が昇順で整列されて描画されているため、一見品種によって収量が変化しているように見える.
 
 しかし実点を見てみると、最大点から最小点までかなり広い範囲でばらついている(つまり分散が大きい)データが多い.
-例えばSvantosaとTrebiだとほとんどの点の描画範囲は変わらないが、後者は最大点が非常に大きくまたデータが広範に散らばっている.
+例えばSvantosaとTrebiだとほとんどの点の描画範囲は変わらないが、Trebiは最大点が非常に大きいために中央値が引き上げられている可能性が高い.
 
 
 次に2つ目の要因である、栽培地のデータを見てみる.
+
 ```{r pressure, echo=FALSE}
 ggplot(barley, aes(x= site, y=yield))+
   theme_bw()+
@@ -107,14 +108,24 @@ ggplot(barley, aes(x= site, y=yield))+
 
 
 これらのことから、オオムギの収量の変動要因は「**栽培地の影響が強く**」、「**品種の影響は栽培地による影響よりは弱そう**」であることがわかる.
-また植物の育成に大きく効く、環境の変動要因である「年度」は「栽培地によって偏りがありそうだがはっきりわからない」といったことがわかる.
+また植物の育成に大きく効く、環境の変動要因である「年度」は「年度と栽培地による偏り（交互作用）がありそうだがはっきりわからない」といったことがわかる.
 
 
-## 2.仮説の検定モデルと分散分析/補正
+## 2. 仮説の検定モデルと分散分析/補正
 
-まずデータの形状から「栽培地と品種が収量に影響する」という仮説がたてられる.
-また「栽培地と年度も関係があるかもしれない」という可能性がデータの概形から分かった.
-この仮説の確からしさを示すために、「栽培地と品種（という変数）は収量に影響しない」という帰無仮説を立て、モデルを以下のように設定する.
+まずデータの形状から
+
+- 栽培地が収量に影響する
+- 品種の収量への影響は弱そう
+- 品種と年度の関係性はなさそう
+- 栽培地と年度には関係性がありそう
+
+という事実が挙げられる.
+
+この仮説の確からしさを示すために、「どの要素も収量に影響しない」という帰無仮説を立てる.
+対立仮説としては「栽培地も品種も収量に影響し、年度は栽培地との交互作用がありそうだ」というモデルを採用する.
+
+これらを踏まえてモデルを以下のように設定する.
 
 ```{r, echo=TRUE}
 
@@ -123,7 +134,7 @@ yield_nullmodel <- lm(yield ~ 1, data = barley)
 yield_altmodel <- lm(yield ~ site + variety + 1 + site:year, data = barley)
 
 ```
-上の回帰式は切片のみ（+誤差項）の栽培地と品種を考慮しないモデルで、下は栽培地による効果（ブロック効果）と品種（処理効果）という回帰係数を組み込み、またsiteとyearによる交互作用を考慮した上で収量が説明できると仮定したモデルである.
+上の回帰式は切片のみ（+誤差項）の栽培地と品種を考慮しないモデルで、下は栽培地による効果（ブロック効果）と品種（処理効果）という回帰係数を組み込み、また栽培地と年度による交互作用を考慮した上で収量が説明できると仮定したモデルである.
 
 上記の各モデルに対して分散分析を行うと以下のようになる
 
@@ -144,9 +155,162 @@ pairwise.t.test(barley$yield, barley$site, p.adj="holm")
 pairwise.t.test(barley$yield, barley$year, p.adj="holm") 
 ```
 
-上記の結果から多重比較を考慮した上での結果が
 
-## 3.分散分析の結果の解釈と交互作用について
 
-#### 3-1.分散分析の結果について
+
+## 3. 分散分析の結果の解釈と交互作用
+
+### 3-1. 分散分析の結果の解釈
+まずデータの形態から**収量には栽培地の影響が強く、それより弱いが品種の影響もある.さらに栽培地には年度による変動が影響する**という仮説を立てて検証した.
+
+分散分析の結果からは全ての要因、つまり「栽培地」「品種」「栽培地と年度の交互作用」が全て $<0.1\%$ という水準のp値に達しており、この時点ではこれらの**要因が収量に影響しないという帰無仮説は棄却**できた.
+
+### 3-2. 多重比較による結果の解釈
+その上で各要因ごとに複数水準あるためHolm法で補正を行ったところ、まず品種ごとの平均収量の差は水準間での差がないという結果になった.
+
+一方で栽培地に関しては21の組み合わせのうち20ペアで収量平均の差が認められる結果となり、年度に関しても $<1\%$ の水準で収量平均に差があることが示された.
+
+これを踏まえて各栽培地の年度ごとの収量平均をプロットしてみると、以下の図のようになる.
+
+```{r echo=FALSE}
+
+barley_change <- barley |> 
+  group_by(site, year) |> 
+  mutate(yield_mean_site_year = mean(yield))
+
+
+ggplot(barley_change) +
+  theme_bw()+
+  geom_point(aes(x = site, y = yield_mean_site_year, color = year), size = 2) +
+  scale_color_manual(values = scico(2, begin = 0.1, palette = "hawaii"))+
+  #複数要素の折線はgroupで何の要素ごとで繋ぐのかを明示しなければいけない
+  geom_line(aes(x = site, y = yield_mean_site_year, color = year, group = year)) + 
+  scale_x_discrete(guide = guide_axis(n.dodge = 2))+
+  xlab("site") + 
+  ylab("yield mean by site and each year")+
+  labs(
+    title = "yield mean by site in each year",
+    x = "site",
+    y = "yield mean [bu/ac]"
+  )+
+  theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        axis.text.x = element_text(size = 10.5),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 12),
+        plot.caption = element_text(size = 8)
+  )
+
+```
+
+
+横軸に栽培地、縦軸に収量平均をとって年度で分けて折線グラフを描いている.
+
+大枠として収量平均は右肩あがりに見えるため**栽培地によって収量平均が変化する**という事実が分かる.
+また年度でも全体的に1932年のものより1931年の方がほとんどの栽培地で収量平均の値が高いため年度による効果もありそうだと考えられる.
+
+またグラフの傾きをみると、収量平均の変動率（栽培地点間の線の傾き）が異なっていたり、栽培地Morrisでは収量平均の変動が年度で逆転していたりする.
+このことは「当該栽培地の年度による環境の変動」、つまりは栽培地と年度による交互作用が収量平均に作用していると推測され、交互作用の可能性が考えられる.
+
+これらのことから、少なくとも**このデータ内では栽培地と年度の交互作用で収量平均が変化する**という解釈が妥当と思われる.
+
+<br/>
+
+交互作用について品種と年度についても見てみると
+```{r echo=TRUE}
+
+variety_year_inter_model <- lm(yield ~ site + variety + 1 + variety:year, data = barley)
+car::Anova(variety_year_inter_model , type="III")
+all_inter_model <- lm(yield ~ site + variety + 1 + site:year + variety:year, data = barley)
+car::Anova(all_inter_model , type="III")
+
+```
+
+品種と年度の交互作用のみがあると仮定したモデルでは交互作用項が有意水準になるが、栽培地と年度も加えたモデルだと有意水準に達しない.
+
+```{r echo=FALSE}
+barley_change <- barley_change |> 
+  group_by(variety, year) |> 
+  mutate(yield_mean_variety_year = mean(yield))
+
+ggplot(barley_change) +
+  theme_bw()+
+  geom_point(aes(x = variety, y = yield_mean_variety_year, color = year), size = 2) +
+  scale_color_manual(values = scico(2, begin = 0.1, palette = "hawaii"))+
+  #複数要素の折線はgroupで何の要素ごとで繋ぐのかを明示しなければいけない
+  geom_line(aes(x = variety, y = yield_mean_variety_year, color = year, group = year)) + 
+  scale_x_discrete(guide = guide_axis(n.dodge = 2))+
+  labs(
+    title = "yield mean by variety and each year",
+    x = "variety",
+    y = "yield mean [bu/ac]"
+  )+
+  theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        axis.text.x = element_text(size = 10.5),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 12),
+        plot.caption = element_text(size = 8)
+  )
+
+```
+
+グラフをみると、年度によって栽培地ごとの収量の変化率が異なるため交互作用があるように解釈できそうだがこれまでのモデルに対する議論からこれは別の要因、すなわち栽培地による変動が大きいことが分かったためはっきりと品種と年度の間に交互作用があるとは言えない.
+
+### 3-3. まとめ
+上記のことから、まず帰無仮説は否定される.
+
+対立仮説としては「栽培地も品種も収量に影響し、年度は栽培地との交互作用がありそうだ」というモデルを立てた.
+
+品種による収量の大きな変動がないことと交互作用に対する分散分析の結果からこのモデルには修正が必要で「栽培地と栽培地と年度の相互作用が収量に影響し、品種は収量に影響しない」というモデルが確からしそうだと推測できる.
+
+## 4. 様々なモデルの検討
+
+ここまでで以下のモデルを示してきた
+```{r, echo=TRUE, eval=FALSE}
+#nullモデル
+yield_nullmodel <- lm(yield ~ 1, data = barley)
+
+#栽培地と品種と栽培地と年度の相互作用を係数として織り込んだモデル
+yield_altmodel <- lm(yield ~ site + variety + 1 + site:year, data = barley)
+
+#栽培地と品種と栽培地と品種の相互作用を係数として織り込んだモデル
+variety_year_inter_model <- lm(yield ~ site + variety + 1 + variety:year, data = barley)
+
+#栽培地と年度の相互作用と品種と年度の相互作用を係数として織り込んだモデル
+all_inter_model <- lm(yield ~ site + variety + 1 + site:year + variety:year, data = barley)
+
+```
+
+
+示していない線形統計モデルとしては、より単純なモデルやランダムエフェクトを考慮したモデルが挙げられるためそれらを示す.
+
+
+```{r, echo=TRUE, eval=TRUE}
+##品種(と誤差頂+切片)だけを含んだモデル
+model1 <- lm(yield ~ variety + 1, data = barley)
+
+##栽培地(と誤差頂+切片)だけを含んだモデル
+model2 <- lm(yield ~ site + 1, data = barley)
+
+##年度(と誤差頂+切片)だけを含んだモデル
+model3 <- lm(yield ~ year + 1, data = barley)
+
+#年度の変動が品種や栽培地の違いに影響すると考えられる
+##栽培地と品種のランダム効果だけを導入したモデル
+model4 <- lmer(yield ~   1 + (1 | site) + (1|variety) , data = barley)
+
+##栽培地と切片に、年度(環境変動)と品種のランダム効果を導入したモデル
+model5 <- lmer(yield ~  site + 1 + (site + 1 | year) + (1 |variety) , data = barley)
+
+##品種には栽培地の効果がありそうだと考えられる
+##品種に年度(環境変動)と栽培地のランダム効果を導入したモデル
+model6 <- lmer(yield ~ variety + 1 + (variety + 1 | year) + (variety + 1|site) , data = barley)
+
+##栽培地と年度の相互作用のモデルに、
+model7 <- lmer(yield ~ site + year + site:year + (1|variety) , data = barley)
+```
+
 
