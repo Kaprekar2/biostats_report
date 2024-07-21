@@ -19,7 +19,7 @@ mainfont: ipaexg.ttf
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-pacman::p_load(tidyverse, ggtext, lattice)
+pacman::p_load(tidyverse, ggtext, lattice, car)
 ```
 
 ## 環境要件
@@ -35,10 +35,13 @@ sessionInfo()
 ```{r echo=FALSE}
 head(barley)
 ```
+variety・site・yearという3つの変数とそれに対応する変数yieldがある.
 
-さらにデータ数自体に偏りがないかを確認すると以下のように大きい偏りは見られない.
+さらにデータ数自体に偏りがないかを確認すると各水準ごとに偏りはなく同じ数サンプリングされている.
 ```{r , echo=FALSE}
-barley |> group_by(variety) |> tally()
+barley |> group_by(variety) |> tally() |> head()
+barley |> group_by(site) |> tally() |> head()
+barley |> group_by(year) |> tally() |> head()
 ```
 
 ## 1.オオムギ収量の箱ひげ図
@@ -52,7 +55,7 @@ ggplot(barley, aes(x= variety, y=yield))+
   geom_jitter(aes(colour=year),width = 0.2)+
   scale_colour_manual(values = c("#D59B0A", "#DECA98"))+
   labs(
-    title = "barley yield",
+    title = "barley yield by variety",
     x = "variety",
     y = "yield [bu/ac]"
   )+
@@ -68,10 +71,10 @@ ggplot(barley, aes(x= variety, y=yield))+
 ```
 
 
-プロットは自動的に中央値（第二四分位数）が昇順で整列されて描画されているため、品種によって大きくなっているように感じる.
+プロットは自動的に中央値（第二四分位数）が昇順で整列されて描画されているため、一見品種によって収量が変化しているように見える.
 
 しかし実点を見てみると、最大点から最小点までかなり広い範囲でばらついている(つまり分散が大きい)データが多い.
-例えばSvantosaとTrebiだとほとんどの点の描画範囲は変わらないが、最大点が非常に大きくまたデータが広範に散らばっている.
+例えばSvantosaとTrebiだとほとんどの点の描画範囲は変わらないが、後者は最大点が非常に大きくまたデータが広範に散らばっている.
 
 
 次に2つ目の要因である、栽培地のデータを見てみる.
@@ -82,7 +85,7 @@ ggplot(barley, aes(x= site, y=yield))+
   geom_jitter(aes(colour=year),width = 0.2)+
   scale_colour_manual(values = c("#D59B0A", "#DECA98"))+
   labs(
-    title = "barley yield",
+    title = "barley yield by site",
     x = "site",
     y = "yield [bu/ac]"
   )+
@@ -104,43 +107,46 @@ ggplot(barley, aes(x= site, y=yield))+
 
 
 これらのことから、オオムギの収量の変動要因は「**栽培地の影響が強く**」、「**品種の影響は栽培地による影響よりは弱そう**」であることがわかる.
-また植物の育成に大きく効く、環境の変動要因である「年度」は「栽培地によって偏りがありそうだがわからない」といったことがわかる.
+また植物の育成に大きく効く、環境の変動要因である「年度」は「栽培地によって偏りがありそうだがはっきりわからない」といったことがわかる.
 
 
 ## 2.仮説の検定モデルと分散分析/補正
 
 まずデータの形状から「栽培地と品種が収量に影響する」という仮説がたてられる.
+また「栽培地と年度も関係があるかもしれない」という可能性がデータの概形から分かった.
 この仮説の確からしさを示すために、「栽培地と品種（という変数）は収量に影響しない」という帰無仮説を立て、モデルを以下のように設定する.
 
 ```{r, echo=TRUE}
 
 yield_nullmodel <- lm(yield ~ 1, data = barley)
 
-yield_altmodel <- lm(yield ~ site + variety + 1, data = barley)
+yield_altmodel <- lm(yield ~ site + variety + 1 + site:year, data = barley)
 
 ```
-上の回帰式は切片のみ（+誤差項）のモデル（栽培地と品種を考慮しないモデル）で、下は栽培地と品種という回帰係数で収量が説明できると仮定したモデルである.
+上の回帰式は切片のみ（+誤差項）の栽培地と品種を考慮しないモデルで、下は栽培地による効果（ブロック効果）と品種（処理効果）という回帰係数を組み込み、またsiteとyearによる交互作用を考慮した上で収量が説明できると仮定したモデルである.
 
-分散分析を行うと以下のようになる
+上記の各モデルに対して分散分析を行うと以下のようになる
 
 ```{r, echo=FALSE}
 
 anova(yield_nullmodel)
 
-anova(yield_altmodel)
+car::Anova(yield_altmodel, type="III")
 
 ```
 
-まず切片だけだと
 
-
+さらに水準間で多重比較を行っているため、Holm法による補正を行って各要素内の水準間で差があるかを比較する.
 
 ```{r, echo=FALSE}
 pairwise.t.test(barley$yield, barley$variety, p.adj="holm") 
 pairwise.t.test(barley$yield, barley$site, p.adj="holm") 
+pairwise.t.test(barley$yield, barley$year, p.adj="holm") 
 ```
 
 上記の結果から多重比較を考慮した上での結果が
 
 ## 3.分散分析の結果の解釈と交互作用について
-交互作用は弱そう
+
+#### 3-1.分散分析の結果について
+

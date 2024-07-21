@@ -75,18 +75,34 @@ pairwise.t.test(barley$yield, barley$site, p.adj="holm")
 ##### 交互作用 -----
 
 barley_change <- barley |> 
-  group_by(site, variety) |> 
-  mutate(yield_mean = mean(yield))
+  group_by(site, year) |> 
+  mutate(yield_mean_site_year = mean(yield))
 
 
 ggplot(barley_change) +
   theme_bw()+
-  geom_point(aes(x = variety, y = yield_mean, color = site), size = 2) +
-  scale_color_manual(values = scico(6, begin = 0.1, palette = "hawaii"))+
-  geom_line(aes(x = variety, y = yield_mean, color = site, group = site)) + 
-  xlab("variety") + 
-  ylab("yield mean")+
-  scale_x_discrete(guide = guide_axis(n.dodge = 2))
+  geom_point(aes(x = site, y = yield_mean_site_year, color = year), size = 2) +
+  scale_color_manual(values = scico(2, begin = 0.1, palette = "hawaii"))+
+  #複数要素の折線はgroupで何の要素ごとで繋ぐのかを明示しなければいけない
+  geom_line(aes(x = site, y = yield_mean_site_year, color = year, group = year)) + 
+  scale_x_discrete(guide = guide_axis(n.dodge = 2))+
+  xlab("site") + 
+  ylab("yield mean by site in each year")+
+  labs(
+    title = "yield mean by site in each year",
+    x = "site",
+    y = "yield mean [bu/ac]"
+  )+
+  theme(plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(size = 16),
+        axis.title.y = element_text(size = 16),
+        axis.text.x = element_text(size = 10.5),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 12),
+        plot.caption = element_text(size = 8)
+  )
+  
+  
 
 
 
