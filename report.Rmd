@@ -47,7 +47,8 @@ barley |> group_by(year) |> tally() |> head()
 ## 1. オオムギ収量の箱ひげ図
 
 
-<font-size: 18px;> 一つ目の要因である品種をx軸にとった箱ひげ図をまず見てみる.</font> 
+一つ目の要因である品種をx軸にとった箱ひげ図をまず見てみる.
+<br/>
 ```{r , echo=FALSE}
 ggplot(barley, aes(x= variety, y=yield))+
   theme_bw()+
@@ -76,6 +77,7 @@ ggplot(barley, aes(x= variety, y=yield))+
 しかし実点を見てみると、最大点から最小点までかなり広い範囲でばらついている(つまり分散が大きい)データが多い.
 例えばSvantosaとTrebiだとほとんどの点の描画範囲は変わらないが、Trebiは最大点が非常に大きいために中央値が引き上げられている可能性が高い.
 
+<br/>
 
 次に2つ目の要因である、栽培地のデータを見てみる.
 
@@ -106,10 +108,13 @@ ggplot(barley, aes(x= site, y=yield))+
 さらにもう一つの年度という変数に着目してみると、品種のグラフでは片方の年度だけ収量が高いといった偏りは特に見出せない.
 一方で栽培地のグラフではばらけている栽培地と、Morrisのように年度で収量の平均が変動していそうに見えるサンプルもある.
 
+<br/>
 
 これらのことから、オオムギの収量の変動要因は「**栽培地の影響が強く**」、「**品種の影響は栽培地による影響よりは弱そう**」であることがわかる.
 また植物の育成に大きく効く、環境の変動要因である「年度」は「年度と栽培地による偏り（交互作用）がありそうだがはっきりわからない」といったことがわかる.
 
+<br/>
+<br/>
 
 ## 2. 仮説の検定モデルと分散分析/補正
 
@@ -157,6 +162,8 @@ pairwise.t.test(barley$yield, barley$year, p.adj="holm")
 
 
 
+<br/>
+<br/>
 
 ## 3. 分散分析の結果の解釈と交互作用
 
@@ -266,6 +273,9 @@ ggplot(barley_change) +
 
 品種による収量の大きな変動がないことと交互作用に対する分散分析の結果からこのモデルには修正が必要で「栽培地と栽培地と年度の相互作用が収量に影響し、品種は収量に影響しない」というモデルが確からしそうだと推測できる.
 
+<br/>
+<br/>
+
 ## 4. 様々なモデルの検討
 
 ここまでで以下のモデルを示してきた
@@ -287,6 +297,8 @@ all_inter_model <- lm(yield ~ site + variety + 1 + site:year + variety:year, dat
 
 示していない線形統計モデルとしては、より単純なモデルやランダムエフェクトを考慮したモデルが挙げられるためそれらを示す.
 
+<br/>
+
 基本的な環境要因で考えられるものとして
 
 - 品種と栽培地には年度の変動が影響する
@@ -294,7 +306,7 @@ all_inter_model <- lm(yield ~ site + variety + 1 + site:year + variety:year, dat
 
 があることを踏まえて、以下に考えられるモデルを列挙する.
 
-```{r, echo=TRUE, eval=FALSE}
+```{r, echo=TRUE, eval=FALSE, message=FALSE}
 ##品種(と誤差頂+切片)だけを含んだモデル
 model1 <- lm(yield ~ variety + 1, data = barley)
 
@@ -304,27 +316,36 @@ model2 <- lm(yield ~ site + 1, data = barley)
 ##年度(と誤差頂+切片)だけを含んだモデル
 model3 <- lm(yield ~ year + 1, data = barley)
 
+##年度(と誤差頂+切片)だけを含んだモデル
+model4 <- lm(yield ~ site + year, data = barley)
+
+##栽培地(と誤差頂+切片)と相互作用項を含んだモデル
+model5 <- lm(yield ~ site + site:year + 1, data = barley)
+
+##全てを効果量として含んだモデル
+model6 <-  lm(yield ~ site + year + variety + 1, data = barley)
+
 #年度の変動が品種や栽培地の違いに影響すると考えられる
 ##栽培地と品種のランダム効果だけを導入したモデル
-model4 <- lmer(yield ~   1 + (1 | site) + (1|variety) , data = barley)
+model7 <- lmer(yield ~   1 + (1 | site) + (1|variety) , data = barley)
 
 ##栽培地と切片に、年度(環境変動)と品種のランダム効果を導入したモデル
-model5 <- lmer(yield ~  site + 1 + (site + 1 | year) + (1 |variety) , data = barley)
+model8 <- lmer(yield ~  site + 1 + (site + 1 | year) + (1 |variety) , data = barley)
 
 ##品種には栽培地の効果がありそうだと考えられる
 ##品種に年度(環境変動)と栽培地のランダム効果を導入したモデル
-model6 <- lmer(yield ~ variety + 1 + (variety + 1 | year) + (variety + 1|site) , data = barley)
+model9 <- lmer(yield ~ variety + 1 + (variety + 1 | year) + (variety + 1|site) , data = barley)
 
 ##栽培地と年度の相互作用のモデルに、品種のランダム効果を加えたもの
-model7 <- lmer(yield ~ site + year + site:year + (1|variety) , data = barley)
+model10 <- lmer(yield ~ site + year + site:year + (1|variety) , data = barley)
 
 ##品種と年度の相互作用のモデルに、品種のランダム効果を加えたもの
-model8 <- lmer(yield ~ variety + year + variety:year + (variety + 1|site) , data = barley)
+model11 <- lmer(yield ~ variety + year + variety:year + (variety + 1|site) , data = barley)
 
 
 ```
 
-```{r, echo=FALSE, eval=TRUE}
+```{r, echo=FALSE, eval=TRUE, message=FALSE}
 #計算用
 ##品種(と誤差頂+切片)だけを含んだモデル
 model1 <- lm(yield ~ variety + 1, data = barley)
@@ -335,52 +356,128 @@ model2 <- lm(yield ~ site + 1, data = barley)
 ##年度(と誤差頂+切片)だけを含んだモデル
 model3 <- lm(yield ~ year + 1, data = barley)
 
+##年度(と誤差頂+切片)だけを含んだモデル
+model4 <- lm(yield ~ site + year, data = barley)
+
+##栽培地(と誤差頂+切片)と相互作用項を含んだモデル
+model5 <- lm(yield ~ site + site:year + 1, data = barley)
+
+##全てを効果量として含んだモデル
+model6 <-  lm(yield ~ site + year + variety + 1, data = barley)
+
 #年度の変動が品種や栽培地の違いに影響すると考えられる
 ##栽培地と品種のランダム効果だけを導入したモデル
-model4 <- lmer(yield ~   1 + (1 | site) + (1|variety) , data = barley)
+model7 <- lmer(yield ~   1 + (1 | site) + (1|variety) , data = barley)
 
 ##栽培地と切片に、年度(環境変動)と品種のランダム効果を導入したモデル
-model5 <- lmer(yield ~  site + 1 + (site + 1 | year) + (1 |variety) , data = barley)
+model8 <- lmer(yield ~  site + 1 + (site + 1 | year) + (1 |variety) , data = barley)
 
 ##品種には栽培地の効果がありそうだと考えられる
 ##品種に年度(環境変動)と栽培地のランダム効果を導入したモデル
-model6 <- lmer(yield ~ variety + 1 + (variety + 1 | year) + (variety + 1|site) , data = barley)
+model9 <- lmer(yield ~ variety + 1 + (variety + 1 | year) + (variety + 1|site) , data = barley)
 
 ##栽培地と年度の相互作用のモデルに、品種のランダム効果を加えたもの
-model7 <- lmer(yield ~ site + year + site:year + (1|variety) , data = barley)
+model10 <- lmer(yield ~ site + year + site:year + (1|variety) , data = barley)
 
 ##品種と年度の相互作用のモデルに、品種のランダム効果を加えたもの
-model8 <- lmer(yield ~ variety + year + variety:year + (variety + 1|site) , data = barley)
-
+model11 <- lmer(yield ~ variety + year + variety:year + (variety + 1|site) , data = barley)
 
 ```
 これらのモデルに対してAICと対数尤度の計算を行う.
 
+<br/>
 
+まず最初に前半のモデルの計算結果は
 ```{r, echo=TRUE, eval=TRUE, include=TRUE}
-
-listed_lmer <- 
-  list( yield_nullmodel, yield_altmodel, variety_year_inter_model, all_inter_model,
-        model1, model2, model3, model4, model5, model6, model7, model8)
+listed_first_models <- 
+  list(yield_nullmodel, yield_altmodel, variety_year_inter_model, all_inter_model)
 
 getAICloglik <- function(model) {
   print(AIC(model))
   print(logLik(model))
 }
+
+first_aics <- map_dbl(listed_first_models, getAICloglik)
+```
+
+<br/>
+
+次に新たに考えたモデルの計算結果は
+
+```{r, echo=TRUE, eval=TRUE, include=TRUE}
+listed_models <- 
+  list( model1, model2, model3, model4, model5, model6, model7, model8, model9,model10, model11)
+
+getAICloglik <- function(model) {
+  print(AIC(model))
+  print(logLik(model))
+}
+
+model_aics <- map_dbl(listed_models, getAICloglik)
+
+
 ```
 
 
 
 AICに基づくと以下のmodel7が最も評価が良く、次点で最初に提案したモデルが良いという結果が得られた.
 
-```{r, echo= TRUE, eval=FALSE}
+```{r, echo= TRUE, eval=TRUE}
 #AICの値が良い
 ##栽培地と年度の相互作用のモデルに、品種のランダム効果を加えたもの
 model7 <- lmer(yield ~ site + year + site:year + (1|variety) , data = barley)
+AIC(model8)
 
 #栽培地と品種と栽培地と年度の相互作用を係数として織り込んだモデル
 yield_altmodel <- lm(yield ~ site + variety + 1 + site:year, data = barley)
+AIC(yield_altmodel)
 
 ```
+
+<br/>
+
+<br/>
+
+## 5. 分散分析の結果との比較
+分散分析と多重補正の結果としては
+
+- 栽培地と年度が収量の変化の要因である
+- 多重補正をすると品種は収量の変動に影響しない程度の効果量である
+
+という解釈になった.
+このことからモデルとしては「栽培地」と「栽培地と年度の相互作用」を効果量として品種は処理効果には導入しないものが適当であると考えられる.
+
+AICを元に選択された最適なモデルは、「栽培地」と「年度」と「栽培地と年度の相互作用」を効果量として、切片のランダム効果として品種を導入したものだった. 次点のモデルは効果量として「栽培地」と「品種」に加えて「栽培地と年度の相互作用」を導入したものだった.
+
+一方で「品種のみ」のモデルは概して下に示すようにAICが悪いことが示された.
+
+```{r, echo=TRUE, eval=TRUE, message=FALSE}
+#計算用
+##品種(と誤差頂+切片)だけを含んだモデル
+model1 <- lm(yield ~ variety + 1, data = barley)
+AIC(model1)
+
+##品種に年度(環境変動)と栽培地のランダム効果を導入したモデル
+model7 <- lmer(yield ~ variety + 1 + (variety + 1 | year) + (variety + 1|site) , data = barley)
+AIC(model7)
+```
+
+<br/>
+
+また年度を独立した変数としてモデルに導入するよりも、交互作用項として組み込むとモデルの評価が良いことも以下のふたつのモデルの結果から分かる.
+
+```{r, echo=TRUE, eval=TRUE, message=FALSE}
+##年度(と誤差頂+切片)だけを含んだモデル
+model4 <- lm(yield ~ site + year, data = barley)
+AIC(model4)
+
+##栽培地(と誤差頂+切片)と相互作用項を含んだモデル
+model5 <- lm(yield ~ site + site:year + 1, data = barley)
+AIC(model5)
+```
+
+<br/>
+
+これらのことから、**栽培地を主な変量効果として設定**し、栽培地に**年度との交互作用を加え**、品種を処理項ではなく**ランダム効果として加える**という方針でモデルを立てることでこのデータを説明できる確からしいモデルが表現できると考えられる.
 
 
