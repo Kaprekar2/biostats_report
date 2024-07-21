@@ -287,8 +287,14 @@ all_inter_model <- lm(yield ~ site + variety + 1 + site:year + variety:year, dat
 
 示していない線形統計モデルとしては、より単純なモデルやランダムエフェクトを考慮したモデルが挙げられるためそれらを示す.
 
+基本的な環境要因で考えられるものとして
 
-```{r, echo=TRUE, eval=TRUE}
+- 品種と栽培地には年度の変動が影響する
+- 品種は栽培地の環境の影響を受ける
+
+があることを踏まえて、以下に考えられるモデルを列挙する.
+
+```{r, echo=TRUE, eval=FALSE}
 ##品種(と誤差頂+切片)だけを含んだモデル
 model1 <- lm(yield ~ variety + 1, data = barley)
 
@@ -309,8 +315,72 @@ model5 <- lmer(yield ~  site + 1 + (site + 1 | year) + (1 |variety) , data = bar
 ##品種に年度(環境変動)と栽培地のランダム効果を導入したモデル
 model6 <- lmer(yield ~ variety + 1 + (variety + 1 | year) + (variety + 1|site) , data = barley)
 
-##栽培地と年度の相互作用のモデルに、
+##栽培地と年度の相互作用のモデルに、品種のランダム効果を加えたもの
 model7 <- lmer(yield ~ site + year + site:year + (1|variety) , data = barley)
+
+##品種と年度の相互作用のモデルに、品種のランダム効果を加えたもの
+model8 <- lmer(yield ~ variety + year + variety:year + (variety + 1|site) , data = barley)
+
+
+```
+
+```{r, echo=FALSE, eval=TRUE}
+#計算用
+##品種(と誤差頂+切片)だけを含んだモデル
+model1 <- lm(yield ~ variety + 1, data = barley)
+
+##栽培地(と誤差頂+切片)だけを含んだモデル
+model2 <- lm(yield ~ site + 1, data = barley)
+
+##年度(と誤差頂+切片)だけを含んだモデル
+model3 <- lm(yield ~ year + 1, data = barley)
+
+#年度の変動が品種や栽培地の違いに影響すると考えられる
+##栽培地と品種のランダム効果だけを導入したモデル
+model4 <- lmer(yield ~   1 + (1 | site) + (1|variety) , data = barley)
+
+##栽培地と切片に、年度(環境変動)と品種のランダム効果を導入したモデル
+model5 <- lmer(yield ~  site + 1 + (site + 1 | year) + (1 |variety) , data = barley)
+
+##品種には栽培地の効果がありそうだと考えられる
+##品種に年度(環境変動)と栽培地のランダム効果を導入したモデル
+model6 <- lmer(yield ~ variety + 1 + (variety + 1 | year) + (variety + 1|site) , data = barley)
+
+##栽培地と年度の相互作用のモデルに、品種のランダム効果を加えたもの
+model7 <- lmer(yield ~ site + year + site:year + (1|variety) , data = barley)
+
+##品種と年度の相互作用のモデルに、品種のランダム効果を加えたもの
+model8 <- lmer(yield ~ variety + year + variety:year + (variety + 1|site) , data = barley)
+
+
+```
+これらのモデルに対してAICと対数尤度の計算を行う.
+
+
+```{r, echo=TRUE, eval=TRUE, include=TRUE}
+
+listed_lmer <- 
+  list( yield_nullmodel, yield_altmodel, variety_year_inter_model, all_inter_model,
+        model1, model2, model3, model4, model5, model6, model7, model8)
+
+getAICloglik <- function(model) {
+  print(AIC(model))
+  print(logLik(model))
+}
+```
+
+
+
+AICに基づくと以下のmodel7が最も評価が良く、次点で最初に提案したモデルが良いという結果が得られた.
+
+```{r, echo= TRUE, eval=FALSE}
+#AICの値が良い
+##栽培地と年度の相互作用のモデルに、品種のランダム効果を加えたもの
+model7 <- lmer(yield ~ site + year + site:year + (1|variety) , data = barley)
+
+#栽培地と品種と栽培地と年度の相互作用を係数として織り込んだモデル
+yield_altmodel <- lm(yield ~ site + variety + 1 + site:year, data = barley)
+
 ```
 
 
