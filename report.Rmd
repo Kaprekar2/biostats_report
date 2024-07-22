@@ -22,6 +22,7 @@ knitr::opts_chunk$set(echo = TRUE)
 pacman::p_load(tidyverse, ggtext, lattice, car, scico, lme4)
 ```
 
+# 課題1
 ## 環境要件
 
 ```{r echo=FALSE}
@@ -317,7 +318,7 @@ model2 <- lm(yield ~ site + 1, data = barley)
 model3 <- lm(yield ~ year + 1, data = barley)
 
 ##年度(と誤差頂+切片)だけを含んだモデル
-model4 <- lm(yield ~ site + year, data = barley)
+model4 <- lm(yield ~ site + year + 1, data = barley)
 
 ##栽培地(と誤差頂+切片)と相互作用項を含んだモデル
 model5 <- lm(yield ~ site + site:year + 1, data = barley)
@@ -357,7 +358,7 @@ model2 <- lm(yield ~ site + 1, data = barley)
 model3 <- lm(yield ~ year + 1, data = barley)
 
 ##年度(と誤差頂+切片)だけを含んだモデル
-model4 <- lm(yield ~ site + year, data = barley)
+model4 <- lm(yield ~ site + year + 1, data = barley)
 
 ##栽培地(と誤差頂+切片)と相互作用項を含んだモデル
 model5 <- lm(yield ~ site + site:year + 1, data = barley)
@@ -419,14 +420,13 @@ model_aics <- map_dbl(listed_models, getAICloglik)
 ```
 
 
-
-AICに基づくと以下のmodel7が最も評価が良く、次点で最初に提案したモデルが良いという結果が得られた.
+AICに基づくと以下のmodel10が最も評価が良く（AICの数値が低い$ \fallingdotseq$ 対数尤度の値が大きい）、次点で最初に提案したモデルが良いという結果が得られた.
 
 ```{r, echo= TRUE, eval=TRUE}
 #AICの値が良い
 ##栽培地と年度の相互作用のモデルに、品種のランダム効果を加えたもの
-model7 <- lmer(yield ~ site + year + site:year + (1|variety) , data = barley)
-AIC(model8)
+model10 <- lmer(yield ~ site + year + site:year + (1|variety) , data = barley)
+AIC(model10)
 
 #栽培地と品種と栽培地と年度の相互作用を係数として織り込んだモデル
 yield_altmodel <- lm(yield ~ site + variety + 1 + site:year, data = barley)
@@ -445,9 +445,9 @@ AIC(yield_altmodel)
 - 多重補正をすると品種は収量の変動に影響しない程度の効果量である
 
 という解釈になった.
-このことからモデルとしては「栽培地」と「栽培地と年度の相互作用」を効果量として品種は処理効果には導入しないものが適当であると考えられる.
+このことからモデルとしては「栽培地」と「年度」と「栽培地と年度の相互作用」を効果量として品種は処理効果には導入しないものが適当であると考えられる.
 
-AICを元に選択された最適なモデルは、「栽培地」と「年度」と「栽培地と年度の相互作用」を効果量として、切片のランダム効果として品種を導入したものだった. 次点のモデルは効果量として「栽培地」と「品種」に加えて「栽培地と年度の相互作用」を導入したものだった.
+実際にAICを元に選択された最適なモデルは、「栽培地」と「栽培地と年度の相互作用」を効果量として、切片のランダム効果として「品種」を導入したものだった. 次点のモデルは効果量として「栽培地」と「品種」に加えて「栽培地と年度の相互作用」を導入したものだった.
 
 一方で「品種のみ」のモデルは概して下に示すようにAICが悪いことが示された.
 
@@ -462,13 +462,19 @@ model7 <- lmer(yield ~ variety + 1 + (variety + 1 | year) + (variety + 1|site) ,
 AIC(model7)
 ```
 
+最初にデータを確認したように、品種による収量のばらつきに対する効果はほぼなさそうなことが確からしいことが分かる.
+
 <br/>
 
-また年度を独立した変数としてモデルに導入するよりも、交互作用項として組み込むとモデルの評価が良いことも以下のふたつのモデルの結果から分かる.
+さらに年度変数に関しても、単独の変数としてモデルに導入したり独立した係数として導入したモデルよリも、栽培地との交互作用項として組み込んだモデルの方が評価が良いことも以下の結果から分かる.
 
 ```{r, echo=TRUE, eval=TRUE, message=FALSE}
 ##年度(と誤差頂+切片)だけを含んだモデル
-model4 <- lm(yield ~ site + year, data = barley)
+model3 <- lm(yield ~ year + 1, data = barley)
+AIC(model3)
+
+##年度(と誤差頂+切片)だけを含んだモデル
+model4 <- lm(yield ~ site + year + 1, data = barley)
 AIC(model4)
 
 ##栽培地(と誤差頂+切片)と相互作用項を含んだモデル
@@ -476,8 +482,17 @@ model5 <- lm(yield ~ site + site:year + 1, data = barley)
 AIC(model5)
 ```
 
+
 <br/>
 
-これらのことから、**栽培地を主な変量効果として設定**し、栽培地に**年度との交互作用を加え**、品種を処理項ではなく**ランダム効果として加える**という方針でモデルを立てることでこのデータを説明できる確からしいモデルが表現できると考えられる.
+以上、分散分析やモデル選択の結果から
+
+- 収量の変動は栽培地と年度が大きく影響する
+- 多重補正を加えると品種は単独の回帰係数として用いるのは良くない
+- 年度は単独の変数とするよりは栽培地との交互作用として導入した方が良い
+
+ということが分かる.
+
+**栽培地を主な変量効果として設定**し、**年度と栽培地の交互作用を加え**、品種を処理項ではなく**ランダム効果として加える**という方針でモデルを立てることでこのデータを説明できる確からしいモデルが表現できると考えられる.
 
 
